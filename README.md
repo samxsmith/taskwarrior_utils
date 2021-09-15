@@ -13,6 +13,14 @@ task notes 12
 ```
 [Find out more](./open_notes/)
 
+### Add to
+Adding a task to an existing project can be a pain. Sometimes it's nice to have longer, explanatory project names.
+Especially when working with sub-projects.
+
+Instead of having to copy and paste the project name this tool gives you a select capability, to search for a project
+and then add multiple tasks once selected.
+
+[Find out more](taskaddto/)
 
 # More to come
 I'll slowly be pushing my utils here as I tidy them up.

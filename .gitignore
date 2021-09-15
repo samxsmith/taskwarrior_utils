@@ -1,0 +1,7 @@
+
+# ignore the binary
+task-open-notes
+open_notes
+
+# local config
+.idea
