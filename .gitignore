@@ -2,6 +2,7 @@
 # ignore the binary
 task-open-notes
 open_notes
+taskopen
 
 # local config
 .idea
