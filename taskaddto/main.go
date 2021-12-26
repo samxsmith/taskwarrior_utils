@@ -3,9 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/manifoldco/promptui"
 	"os/exec"
 	"strings"
+
+	"github.com/manifoldco/promptui"
 )
 
 func main() {
@@ -50,7 +51,7 @@ type EntityWithProject struct {
 }
 
 func getAllProjects() ([]string, error) {
-	out, err := exec.Command("task", "export", "-COMPLETED", "-DELETED").Output()
+	out, err := exec.Command("task", "export", "ready").Output()
 	if err != nil {
 		return nil, fmt.Errorf("exec task projects: %w", err)
 	}
