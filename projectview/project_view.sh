@@ -16,4 +16,8 @@ tmux send-keys -t 0 "while true ; clear; echo "TASKS" && t pro.is:$PROJ ; sleep 
 
 tmux split-window -v
 tmux resize-pane -D 10
-tmux send-keys -t 2 'clear' Enter
+tmux send-keys -t 2 "t burndown.weekly pro:.is:$PROJ" Enter
+
+tmux split-window -v
+tmux resize-pane -D 10
+tmux send-keys -t 3 'clear' Enter
