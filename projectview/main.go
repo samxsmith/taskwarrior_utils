@@ -123,9 +123,9 @@ type EntityWithProject struct {
 }
 
 func getAllProjects() ([]string, error) {
-	out, err := exec.Command("task", "export", "-COMPLETED", "-DELETED").Output()
+	out, err := exec.Command("task", "export", "ready").Output()
 	if err != nil {
-		return nil, fmt.Errorf("exec task projects: %w", err)
+		return nil, fmt.Errorf("export task projects: %w", err)
 	}
 
 	var es []EntityWithProject
