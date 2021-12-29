@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os/exec"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/manifoldco/promptui"
@@ -41,12 +40,13 @@ func launch(projectName string) error {
 		return fmt.Errorf("tmuxResetWindow: %w", err)
 	}
 
-	// setup window
+	// ensure project notes exist
 	projectNotesFile := fmt.Sprintf("%s/%s", projectNotesDir, projectName)
 	if err := touchFile(projectNotesFile); err != nil {
 		return fmt.Errorf("touchFile) %w", err)
 	}
 
+	// setup window
 	if err := setupWindow(projectName, projectNotesFile); err != nil {
 		return fmt.Errorf("setupWindow) %w", err)
 	}
@@ -96,8 +96,8 @@ func setupWindow(projectName, projectNotesFile string) error {
 	NAME PANE
 	*/
 
-	if err := tmuxNameWindow("proj:" + projectName); err != nil {
-		return fmt.Errorf("tmuxNameWindow: %w", err)
+	if err := tmuxSetWindowName("proj:" + projectName); err != nil {
+		return fmt.Errorf("tmuxSetWindowName: %w", err)
 	}
 
 	/***
@@ -128,7 +128,6 @@ func setupWindow(projectName, projectNotesFile string) error {
 	*/
 
 	if err := tmuxSplitVertical(); err != nil {
-		fmt.Println("SPLIT EMPTY SHELL")
 		return fmt.Errorf("tmuxSplitHorizontal) %w", err)
 	}
 
@@ -174,77 +173,6 @@ func setupWindow(projectName, projectNotesFile string) error {
 	return nil
 }
 
-func tmuxCountPanes() (int, error) {
-	paneList, err := exec.Command("tmux", "list-panes").Output()
-	if err != nil {
-		return 0, fmt.Errorf("list-panes: %w", err)
-	}
-
-	count := strings.Count(string(paneList), "\n")
-	return count, nil
-}
-
-func tmuxNewWindow() error {
-	return exec.Command("tmux", "new-window").Run()
-}
-
-func tmuxSelectPane(paneNum int) error {
-	return exec.Command("tmux", "select-pane", "-t", strconv.Itoa(paneNum)).Run()
-}
-func tmuxKillPane(paneNum int) error {
-	return exec.Command("tmux", "kill-pane", "-t", strconv.Itoa(paneNum)).Run()
-}
-func tmuxGetCurrentPane() (int, error) {
-	res, err := exec.Command("tmux", "display-message", "-p", `"#{pane_index}`).Output()
-	if err != nil {
-		return 0, err
-	}
-
-	// chop off trailing \n
-	output := string(res[:len(res)-1])
-	paneNum, err := strconv.Atoi(strings.Trim(output, `"\n`))
-	if err != nil {
-		return 0, err
-	}
-	return paneNum, nil
-}
-
-func tmuxSplitHorizontal() error {
-	return tmuxSplit("-h")
-}
-func tmuxSplitVertical() error {
-	return tmuxSplit("-v")
-}
-
-func tmuxSplit(directionFlag string) error {
-	return exec.Command("tmux", "split-window", directionFlag).Run()
-}
-
-func tmuxNameWindow(name string) error {
-	return exec.Command("tmux", "rename-window", name).Run()
-}
-
-func tmuxPaneCommand(paneNum int, command string) error {
-	paneNumI := strconv.Itoa(paneNum)
-	return exec.Command("tmux", "send-keys", "-t", paneNumI, command, "Enter").Run()
-}
-
-func tmuxPaneKillCommand(paneNum int) error {
-	paneNumI := strconv.Itoa(paneNum)
-	return exec.Command("tmux", "send-keys", "-t", paneNumI, "C-c").Run()
-}
-
-func tmuxResizeDown(amount int) error {
-	return tmuxResize(amount, "-D")
-}
-func tmuxResizeUp(amount int) error {
-	return tmuxResize(amount, "-U")
-}
-func tmuxResize(amount int, directionFlag string) error {
-	amountS := strconv.Itoa(amount)
-	return exec.Command("tmux", "resize-pane", directionFlag, amountS).Run()
-}
-
 type EntityWithProject struct {
 	Project string `json:"project"`
 }
@@ -252,15 +180,34 @@ type EntityWithProject struct {
 func getProject() (string, error) {
 	projects, err := getAllProjects()
 	if err != nil {
-		return "", fmt.Errorf("ERR: getAllProjects) %w", err)
+		return "", fmt.Errorf("getAllProjects) %w", err)
 	}
 
-	pro, err := projectSelect(projects)
+	currentProjectName, err := getCurrentProjectName()
 	if err != nil {
-		return "", fmt.Errorf("ERR: projectSelect) %w", err)
+		return "", fmt.Errorf("getCurrentProjectName) %w", err)
+	}
+
+	pro, err := projectSelect(currentProjectName, projects)
+	if err != nil {
+		return "", fmt.Errorf("projectSelect) %w", err)
 	}
 
 	return pro, nil
+}
+
+func getCurrentProjectName() (string, error) {
+	windowName, err := tmuxGetWindowName()
+	if err != nil {
+		return "", fmt.Errorf("tmuxGetWindowName) %w", err)
+	}
+
+	var currentProject string
+	if strings.HasPrefix(windowName, "proj:") {
+		currentProject = windowName[5:]
+	}
+
+	return currentProject, nil
 }
 
 func getAllProjects() ([]string, error) {
@@ -296,11 +243,30 @@ func getAllProjects() ([]string, error) {
 	return projects, nil
 }
 
-func projectSelect(projects []string) (string, error) {
+func projectSelect(currentProject string, projects []string) (string, error) {
+
+	var currentProjectIndex int
+	if currentProject != "" {
+		for i, proj := range projects {
+			if proj == currentProject {
+				currentProjectIndex = i
+				break
+			}
+		}
+	}
+
+	startInSearchMode := true
+
+	// selecting current project doesn't work in search mode
+	// search mode can be triggered with `/`
+	if currentProjectIndex > 0 {
+		startInSearchMode = false
+	}
+
 	p := promptui.Select{
 		Label:             "Select Project",
 		Items:             projects,
-		StartInSearchMode: true,
+		StartInSearchMode: startInSearchMode,
 		Searcher: func(input string, index int) bool {
 			if input == "" {
 				return true
@@ -309,6 +275,9 @@ func projectSelect(projects []string) (string, error) {
 			return strings.Contains(item, input)
 		},
 		Size: 15,
+
+		// start at current project
+		CursorPos: currentProjectIndex,
 	}
 
 	_, result, err := p.Run()
