@@ -137,6 +137,18 @@ func setupWindow(projectName, projectNotesFile string) error {
 	}
 
 	/**
+	PROJECT SELECTOR
+	*/
+
+	if err := tmuxSplitHorizontal(); err != nil {
+		return fmt.Errorf("tmuxSplitVertical) %w", err)
+	}
+
+	if err := tmuxPaneCommand(3, "clear && task viewproject"); err != nil {
+		return fmt.Errorf("tmuxPaneCommand: %w", err)
+	}
+
+	/**
 	BURNDOWN
 	*/
 
@@ -152,30 +164,10 @@ func setupWindow(projectName, projectNotesFile string) error {
 		return fmt.Errorf("tmuxPaneCommand) %w", err)
 	}
 
-	if err := tmuxResizeDown(10); err != nil {
-		return fmt.Errorf("tmuxResizeDown) %w", err)
-	}
-
-	/**
-	PROJECT SELECTOR
-	*/
-
-	if err := tmuxSelectPane(0); err != nil {
-		return fmt.Errorf("tmuxSelectPane) %w", err)
-	}
-
-	if err := tmuxSplitHorizontal(); err != nil {
-		return fmt.Errorf("tmuxSplitVertical) %w", err)
-	}
-
-	if err := tmuxPaneCommand(1, "task viewproject"); err != nil {
-		return fmt.Errorf("tmuxPaneCommand: %w", err)
-	}
-
 	/*
 		RETURN TO SHELL PANE
 	*/
-	if err := tmuxSelectPane(4); err != nil {
+	if err := tmuxSelectPane(3); err != nil {
 		return fmt.Errorf("tmuxSelectPane) %w", err)
 	}
 
@@ -316,6 +308,7 @@ func projectSelect(projects []string) (string, error) {
 			item := projects[index]
 			return strings.Contains(item, input)
 		},
+		Size: 15,
 	}
 
 	_, result, err := p.Run()
