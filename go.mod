@@ -1,4 +1,4 @@
-module task-project-view
+module github.com/samxsmith/taskwarriorutils
 
 go 1.16
 

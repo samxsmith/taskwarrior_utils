@@ -1,12 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os/exec"
+	"sort"
 	"strings"
 
 	"github.com/manifoldco/promptui"
+	"github.com/samxsmith/taskwarriorutils/pkg/task"
 )
 
 func main() {
@@ -51,33 +52,21 @@ type EntityWithProject struct {
 }
 
 func getAllProjects() ([]string, error) {
-	out, err := exec.Command("task", "export", "ready").Output()
+	readyProjects, err := task.GetReadyProjects()
 	if err != nil {
-		return nil, fmt.Errorf("exec task projects: %w", err)
+		return []string{}, fmt.Errorf("task.GetReadyProjects: %w", err)
 	}
 
-	var es []EntityWithProject
-	err = json.Unmarshal(out, &es)
+	// check these too, in case projects don't have any tasks, and aren't forgotten
+	projectsWithNotes, err := task.GetProjectsWithNotes()
 	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal: %w", err)
+		return []string{}, fmt.Errorf("task.GetProjectsWithNotes: %w", err)
 	}
 
-	projectsMap := map[string]bool{}
-	for _, e := range es {
-		if e.Project != "" {
-			projectsMap[e.Project] = true
-		}
-	}
-
-	projects := make([]string, len(projectsMap))
-
-	i := 0
-	for p := range projectsMap {
-		projects[i] = p
-		i++
-	}
-
-	return projects, nil
+	allProjects := uniqueStringSlice(readyProjects, projectsWithNotes)
+	// alphabetise
+	sort.Strings(allProjects)
+	return allProjects, nil
 }
 
 func projectSelect(projects []string) (string, error) {
@@ -116,4 +105,27 @@ func createTask(project, taskString string) error {
 
 	fmt.Println(string(out))
 	return nil
+}
+
+func uniqueStringSlice(a []string, rest ...[]string) []string {
+	m := map[string]bool{}
+
+	for _, v := range a {
+		m[v] = true
+	}
+	for _, s := range rest {
+		for _, v := range s {
+			m[v] = true
+		}
+	}
+
+	result := make([]string, len(m))
+
+	var i int
+	for k := range m {
+		result[i] = k
+		i++
+	}
+
+	return result
 }
