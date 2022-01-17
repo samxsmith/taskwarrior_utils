@@ -86,7 +86,7 @@ func setupWindow(projectName, projectNotesFile string) error {
 	TASKS
 	*/
 
-	if err := tmux.PaneCommand(0, fmt.Sprintf(`while true ; clear; echo "TASKS: %s" && t pro.is:%s ; sleep 5; end`, projectName, projectName)); err != nil {
+	if err := tmux.PaneCommand(0, fmt.Sprintf(`while true ; clear; echo "TASKS: %s" && task pro.is:%s ; sleep 5; end`, projectName, projectName)); err != nil {
 		return fmt.Errorf("tmux.PaneCommand) %w", err)
 	}
 
@@ -110,7 +110,8 @@ func setupWindow(projectName, projectNotesFile string) error {
 		return fmt.Errorf("tmux.SplitVertical) %w", err)
 	}
 
-	if err := tmux.PaneCommand(3, "clear && task viewproject"); err != nil {
+	// rerun itself, for project switcher
+	if err := tmux.PaneCommand(3, "clear && task-project-view"); err != nil {
 		return fmt.Errorf("tmux.PaneCommand: %w", err)
 	}
 
@@ -126,7 +127,7 @@ func setupWindow(projectName, projectNotesFile string) error {
 		return fmt.Errorf("tmux.SplitHorizontal) %w", err)
 	}
 
-	if err := tmux.PaneCommand(2, fmt.Sprintf(`t burndown.weekly pro.is:%s`, projectName)); err != nil {
+	if err := tmux.PaneCommand(2, fmt.Sprintf(`task burndown.weekly pro.is:%s`, projectName)); err != nil {
 		return fmt.Errorf("tmux.PaneCommand) %w", err)
 	}
 
