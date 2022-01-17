@@ -58,6 +58,9 @@ func GetProjectsWithNotes() ([]string, error) {
 
 	var fileNames []string
 	filepath.Walk(projectNotesLocation, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return fmt.Errorf("error walking project notes: %w", err)
+		}
 		if info.IsDir() {
 			return nil
 		}

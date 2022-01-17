@@ -1,8 +1,2 @@
-
-# ignore the binary
-task-open-notes
-cmd/open_notes
-cmd/taskopen
-
 # local config
 .idea
